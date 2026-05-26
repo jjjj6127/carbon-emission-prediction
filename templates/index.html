@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>碳排放数据展示与预测系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+        }
+        /* 导航栏 */
+        .navbar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+        }
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        .nav-link {
+            color: #666;
+            font-weight: 500;
+            margin-left: 1.5rem;
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #007bff;
+        }
+        .nav-link.active {
+            color: #007bff;
+            font-weight: 600;
+        }
+        /* 头部区域 */
+        .hero-section {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 4rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        /* 卡片样式 */
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 1.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        .card-body {
+            padding: 2rem;
+        }
+        /* 控制区域 */
+        .control-panel {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        .form-select, .form-range {
+            margin-bottom: 1rem;
+        }
+        /* 按钮样式 */
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #0069d9;
+            border-color: #0062cc;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2);
+        }
+        /* 预测结果 */
+        .result-panel {
+            background-color: #f8f9fa;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+        .prediction-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #007bff;
+            margin: 1rem 0;
+        }
+        /* SHAP分析 */
+        .shap-bar {
+            height: 20px;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            background-color: #007bff;
+        }
+        .shap-negative {
+            background-color: #dc3545;
+        }
+        /* 加载动画 */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-top: 2rem;
+        }
+        .spinner {
+            border: 3px solid rgba(0, 123, 255, 0.2);
+            border-radius: 50%;
+            border-top: 3px solid #007bff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2rem;
+            }
+            .chart-container {
+                height: 400px;
+            }
+        }
+        /* 模块样式 */
+        .module-card {
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .module-card:hover {
+            border-color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .module-icon {
+            font-size: 1.5rem;
+            color: #007bff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 123, 255, 0.08);
+            border-radius: 50%;
+        }
+        .module-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .module-description {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .mt-8 {
+            margin-top: 4rem !important;
+        }
+        .mb-6 {
+            margin-bottom: 2.5rem !important;
+        }
+        /* 图表容器 */
+        .chart-container {
+            height: 500px;
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="#">碳排放数据系统</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#dashboard">数据看板</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#prediction">智能预测</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#analysis">深度分析</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#about">关于系统</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 头部区域 -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-8">
+                    <h1 class="hero-title">碳排放数据展示与预测系统</h1>
+                    <p class="hero-subtitle">基于大数据分析的碳排放趋势可视化与智能预测，助力实现碳中和目标</p>
+                    <a href="#dashboard" class="btn btn-primary">查看数据看板</a>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>系统概览</h5>
+                            <ul class="list-unstyled mt-3">
+                                <li class="mb-2">• 覆盖全国31个省份碳排放数据</li>
+                                <li class="mb-2">• 2000-2023年完整时间序列</li>
+                                <li class="mb-2">• 基于机器学习的智能预测</li>
+                                <li class="mb-2">• 多维度数据可视化分析</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 数据看板区域 -->
+    <section id="dashboard" class="container mb-5">
+        <h2 class="mb-6">数据看板</h2>
+        
+        <!-- 控制面板 -->
+        <div class="control-panel mb-6">
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label for="province-select" class="form-label">省份选择</label>
+                    <select class="form-select" id="province-select">
+                        <option value="全国">全国</option>
+                        <!-- 省份选项将通过JavaScript动态生成 -->
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="year-select" class="form-label">年份选择</label>
+                    <select class="form-select" id="year-select">
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="2020">2020</option>
+                        <option value="2019">2019</option>
+                        <option value="2018">2018</option>
+                        <option value="2017">2017</option>
+                        <option value="2016">2016</option>
+                        <option value="2015">2015</option>
+                        <option value="2010">2010</option>
+                        <option value="2005">2005</option>
+                        <option value="2000">2000</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary w-100">应用筛选</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 趋势图表 -->
+        <div class="card mb-6">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3>碳排放趋势分析</h3>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="trend-chart" class="chart-container" style="height: 550px;"></div>
+            </div>
+        </div>
+        
+        <!-- 地图可视化 -->
+        <div class="card mb-6">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3>中国碳排放空间分布</h3>
+                    <div class="text-sm text-muted" id="map-year-display">2023年数据</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="map-chart" class="chart-container" style="height: 450px;"></div>
+            </div>
+        </div>
+        
+        <!-- 功能模块 -->
+        <div class="row mt-8">
+            <div class="col-md-4">
+                <div class="card module-card" onclick="navigateTo('prediction')">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="module-icon me-4">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 20V10"></path>
+                                    <path d="M12 20V4"></path>
+                                    <path d="M6 20v-6"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="module-title mb-1">智能预测</h3>
+                                <p class="module-description">基于机器学习模型，预测未来碳排放趋势</p>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button class="btn btn-sm btn-outline-primary">进入模块 →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card module-card" onclick="navigateTo('analysis')">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="module-icon me-4">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                                    <line x1="9" y1="21" x2="9" y2="9"></line>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="module-title mb-1">深度分析</h3>
+                                <p class="module-description">多维度分析碳排放影响因素，提供决策支持</p>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button class="btn btn-sm btn-outline-primary">进入模块 →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card module-card" onclick="navigateTo('about')">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="module-icon me-4">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="module-title mb-1">系统说明</h3>
+                                <p class="module-description">了解系统架构、数据来源和技术实现</p>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button class="btn btn-sm btn-outline-primary">进入模块 →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 预测区域 -->
+    <section id="prediction" class="container mb-5" style="display: none;">
+        <h2 class="mb-4">智能预测</h2>
+        
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>碳排放预测模型</span>
+                <button class="btn btn-sm btn-outline-secondary" onclick="showHistory()">查看历史记录</button>
+            </div>
+            <div class="card-body">
+                <form id="prediction-form">
+                    <div class="row">
+                        {% for feature in feature_names %}
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ feature }}" class="form-label">
+                                <strong>{{ feature }}</strong>
+                                <small class="text-muted">({{ feature_mapping[feature] if feature in feature_mapping else feature }})</small>
+                            </label>
+                            {% if feature in feature_ranges %}
+                            <input type="number" class="form-control" id="{{ feature }}" name="{{ feature }}" 
+                                   step="0.01" placeholder="请输入{{ feature_ranges[feature]['name'] }}（单位：{{ feature_ranges[feature]['unit'] }}）">
+                            {% else %}
+                            <input type="number" class="form-control" id="{{ feature }}" name="{{ feature }}" step="0.01" placeholder="请输入数值">
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            生成预测
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary ms-2" onclick="resetForm()">重置</button>
+                    </div>
+                </form>
+                
+                <!-- 加载动画 -->
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>正在预测，请稍候...</p>
+                </div>
+                
+                <!-- 预测结果 -->
+                <div class="result-panel" id="result-panel" style="display: none;">
+                    <h3>预测结果</h3>
+                    <div class="text-center">
+                        <h4>预测碳排放量</h4>
+                        <div class="prediction-value" id="prediction-value">0.00</div>
+                        <p class="text-muted">单位：万吨</p>
+                    </div>
+                    
+
+                    
+                    <!-- 影响因素分析 -->
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h4>影响因素分析</h4>
+                            <button class="btn btn-sm btn-outline-primary" onclick="toggleShapDetails()">
+                                查看此次贡献值
+                            </button>
+                        </div>
+                        <div id="shap-details" class="mt-2" style="display: none;">
+                            <!-- SHAP值详情将通过JavaScript动态生成 -->
+                        </div>
+                        <div id="shap-hint" class="text-muted">
+                            <small>点击"查看此次贡献值"可查看各因素对预测结果的影响程度</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 历史预测记录弹窗 -->
+        <div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="historyModalLabel">历史预测记录</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="history-list" class="list-group">
+                            <!-- 历史记录将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearHistory()">清空记录</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 分析区域 -->
+    <section id="analysis" class="container mb-5" style="display: none;">
+        <h2 class="mb-4">深度分析</h2>
+        
+        <!-- 分析控制面板 -->
+        <div class="control-panel mb-6">
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>分析选项</h4>
+                    <div class="mt-3">
+                        <button id="run-analysis" class="btn btn-primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                            </svg>
+                            运行深度分析
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h4>分析状态</h4>
+                    <div class="mt-3">
+                        <div id="analysis-status" class="text-muted">点击上方按钮开始分析</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 分析结果 -->
+        <div id="analysis-results" style="display: none;">
+            <!-- 特征重要性 -->
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3>特征重要性分析</h3>
+                </div>
+                <div class="card-body">
+                    <div id="feature-importance-chart" class="chart-container" style="height: 400px;"></div>
+                </div>
+            </div>
+            
+            <!-- 分析报告 -->
+            <div class="card mb-6">
+                <div class="card-header">
+                    <h3>分析报告</h3>
+                </div>
+                <div class="card-body">
+                    <pre id="analysis-report" class="bg-light p-4 rounded" style="white-space: pre-wrap; font-family: 'Microsoft YaHei', Arial, sans-serif;">分析报告加载中...</pre>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 加载动画 -->
+        <div id="analysis-loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>正在进行深度分析，请稍候...</p>
+        </div>
+    </section>
+
+    <!-- 关于区域 -->
+    <section id="about" class="container mb-5" style="display: none;">
+        <h2 class="mb-4">关于系统</h2>
+        
+        <div class="card">
+            <div class="card-header">
+                系统说明
+            </div>
+            <div class="card-body">
+                <h3>系统架构</h3>
+                <p>本系统基于Flask框架开发，使用ECharts进行数据可视化，集成了机器学习模型进行智能预测。</p>
+                
+                <h3 class="mt-4">数据来源</h3>
+                <p>系统使用2000-2023年的碳排放数据，来源于碳排放统计年鉴。</p>
+                
+                <h3 class="mt-4">技术实现</h3>
+                <p>后端：Flask + Python</p>
+                <p>前端：HTML5 + CSS3 + JavaScript + Bootstrap 5</p>
+                <p>数据可视化：ECharts 5</p>
+                <p>机器学习：XGBoost</p>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // 地图数据
+        const mapData = {{ map_data|tojson }};
+        
+        // 导航函数
+        function navigateTo(section) {
+            // 隐藏所有区域
+            document.querySelectorAll('section').forEach(sec => {
+                sec.style.display = 'none';
+            });
+            
+            // 显示目标区域
+            document.getElementById(section).style.display = 'block';
+            
+            // 更新导航状态
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`.nav-link[href="#${section}"]`).classList.add('active');
+            
+            // 滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // 省份名称映射（处理不同名称格式）
+        function normalizeProvinceName(name) {
+            const nameMap = {
+                '北京市': '北京',
+                '天津市': '天津',
+                '河北省': '河北',
+                '山西省': '山西',
+                '内蒙古自治区': '内蒙古',
+                '辽宁省': '辽宁',
+                '吉林省': '吉林',
+                '黑龙江省': '黑龙江',
+                '上海市': '上海',
+                '江苏省': '江苏',
+                '浙江省': '浙江',
+                '安徽省': '安徽',
+                '福建省': '福建',
+                '江西省': '江西',
+                '山东省': '山东',
+                '河南省': '河南',
+                '湖北省': '湖北',
+                '湖南省': '湖南',
+                '广东省': '广东',
+                '广西壮族自治区': '广西',
+                '海南省': '海南',
+                '重庆市': '重庆',
+                '四川省': '四川',
+                '贵州省': '贵州',
+                '云南省': '云南',
+                '西藏自治区': '西藏',
+                '陕西省': '陕西',
+                '甘肃省': '甘肃',
+                '青海省': '青海',
+                '宁夏回族自治区': '宁夏',
+                '新疆维吾尔自治区': '新疆',
+                '香港特别行政区': '香港',
+                '澳门特别行政区': '澳门',
+                '台湾省': '台湾'
+            };
+            return nameMap[name] || name;
+        }
+        
+        // 初始化省份选择器
+        function initProvinceSelector() {
+            const selector = document.getElementById('province-select');
+            const provinces = Object.keys(mapData);
+            
+            provinces.forEach(province => {
+                const option = document.createElement('option');
+                option.value = province;
+                option.textContent = province;
+                selector.appendChild(option);
+            });
+            
+            // 省份选择事件
+            selector.addEventListener('change', function(e) {
+                const selectedProvince = e.target.value;
+                if (selectedProvince === '全国') {
+                    updateTrendChart('全国');
+                } else {
+                    updateTrendChart(normalizeProvinceName(selectedProvince));
+                }
+            });
+        }
+        
+        // 初始化地图
+        function initMapChart() {
+            const chartDom = document.getElementById('map-chart');
+            const myChart = echarts.init(chartDom);
+            
+            // 生成数据
+            function getMapData(year) {
+                const data = [];
+                for (const province in mapData) {
+                    const normalizedName = normalizeProvinceName(province);
+                    const value = mapData[province][year] || 0;
+                    data.push({
+                        name: normalizedName,
+                        value: value
+                    });
+                }
+                return data;
+            }
+            
+            // 计算数据范围（基于当前年份）
+            function calculateDataRange(year) {
+                let min = Infinity;
+                let max = 0;
+                for (const province in mapData) {
+                    const value = mapData[province][year] || 0;
+                    if (value < min) min = value;
+                    if (value > max) max = value;
+                }
+                return { min: Math.floor(min), max: Math.ceil(max) };
+            }
+            
+            let currentYear = '2023';
+            let dataRange = calculateDataRange(currentYear);
+            
+            // 地图配置
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        return params.name + ': ' + params.value + ' 万吨';
+                    }
+                },
+                visualMap: {
+                    min: dataRange.min,
+                    max: dataRange.max,
+                    left: 'left',
+                    top: 'bottom',
+                    text: ['高', '低'],
+                    calculable: true,
+                    inRange: {
+                        color: ['#e0f7fa', '#b2ebf2', '#80deea', '#4dd0e1', '#26c6da', '#00bcd4', '#00acc1', '#0097a7', '#00838f', '#0277bd', '#01579b']
+                    }
+                },
+                series: [
+                    {
+                        name: '碳排放量',
+                        type: 'map',
+                        map: 'china',
+                        roam: true,
+                        label: {
+                            show: true,
+                            fontSize: 10
+                        },
+                        data: getMapData('2023'),
+                        emphasis: {
+                            label: {
+                                show: true,
+                                fontSize: 12,
+                                fontWeight: 'bold'
+                            },
+                            itemStyle: {
+                                areaColor: '#ffcc80'
+                            }
+                        }
+                    }
+                ]
+            };
+            
+            myChart.setOption(option);
+            
+            // 年份选择事件
+            document.getElementById('year-select').addEventListener('change', function(e) {
+                const year = e.target.value;
+                currentYear = year;
+                // 重新计算数据范围
+                dataRange = calculateDataRange(year);
+                // 更新地图配置
+                myChart.setOption({
+                    visualMap: {
+                        min: dataRange.min,
+                        max: dataRange.max
+                    },
+                    series: [
+                        {
+                            data: getMapData(year)
+                        }
+                    ]
+                });
+                // 更新地图标题显示的年份
+                document.getElementById('map-year-display').textContent = year + '年数据';
+            });
+            
+            // 地图点击事件
+            myChart.on('click', function(params) {
+                const selectedProvince = params.name;
+                // 打开省份地图新页面
+                window.open('/province_map/' + encodeURIComponent(selectedProvince), '_blank');
+            });
+            
+            // 窗口大小变化时重绘
+            window.addEventListener('resize', function() {
+                myChart.resize();
+            });
+        }
+        
+        // 初始化趋势图
+        let trendChart = null;
+        
+        function initTrendChart() {
+            const chartDom = document.getElementById('trend-chart');
+            trendChart = echarts.init(chartDom);
+            
+            // 默认显示全国数据
+            updateTrendChart('全国');
+            
+            // 窗口大小变化时重绘
+            window.addEventListener('resize', function() {
+                trendChart.resize();
+            });
+        }
+        
+        // 更新趋势图数据
+        function updateTrendChart(province) {
+            if (!trendChart) return;
+            
+            // 生成趋势数据
+            function getTrendData(selectedProvince) {
+                // 获取所有可用年份并排序
+                const yearsSet = new Set();
+                for (const p in mapData) {
+                    for (const year in mapData[p]) {
+                        yearsSet.add(year);
+                    }
+                }
+                const years = Array.from(yearsSet).sort((a, b) => parseInt(a) - parseInt(b));
+                
+                const data = [];
+                
+                years.forEach(year => {
+                    if (selectedProvince === '全国') {
+                        // 全国数据：计算平均值
+                        let total = 0;
+                        let count = 0;
+                        for (const p in mapData) {
+                            if (mapData[p][year]) {
+                                total += mapData[p][year];
+                                count++;
+                            }
+                        }
+                        if (count > 0) {
+                            data.push(total / count);
+                        } else {
+                            data.push(0);
+                        }
+                    } else {
+                        // 省份数据：直接获取
+                        // 处理省份名称映射
+                        let provinceData = null;
+                        for (const p in mapData) {
+                            if (normalizeProvinceName(p) === selectedProvince) {
+                                provinceData = mapData[p];
+                                break;
+                            }
+                        }
+                        data.push(provinceData ? (provinceData[year] || 0) : 0);
+                    }
+                });
+                
+                return {
+                    years: years,
+                    data: data
+                };
+            }
+            
+            const trendData = getTrendData(province);
+            
+            // 趋势图配置
+            const option = {
+                title: {
+                    text: province + '碳排放量趋势',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        return params[0].name + '年: ' + params[0].value.toFixed(2) + ' 万吨';
+                    }
+                },
+                toolbox: {
+                    feature: {
+                        dataZoom: {
+                            yAxisIndex: 'none'
+                        },
+                        saveAsImage: {}
+                    }
+                },
+                dataZoom: [
+                    {
+                        type: 'inside',
+                        start: 0,
+                        end: 100
+                    },
+                    {
+                        start: 0,
+                        end: 100,
+                        handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+                        handleSize: '80%',
+                        handleStyle: {
+                            color: '#007bff',
+                            shadowBlur: 3,
+                            shadowColor: 'rgba(0, 0, 0, 0.6)',
+                            shadowOffsetX: 2,
+                            shadowOffsetY: 2
+                        }
+                    }
+                ],
+                xAxis: {
+                    type: 'category',
+                    data: trendData.years,
+                    boundaryGap: false
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '碳排放量 (万吨)'
+                },
+                series: [
+                    {
+                        data: trendData.data,
+                        type: 'line',
+                        smooth: true,
+                        lineStyle: {
+                            color: '#007bff',
+                            width: 3
+                        },
+                        itemStyle: {
+                            color: '#007bff'
+                        },
+                        areaStyle: {
+                            color: {
+                                type: 'linear',
+                                x: 0,
+                                y: 0,
+                                x2: 0,
+                                y2: 1,
+                                colorStops: [{
+                                    offset: 0, color: 'rgba(0, 123, 255, 0.3)'
+                                }, {
+                                    offset: 1, color: 'rgba(0, 123, 255, 0.1)'
+                                }]
+                            }
+                        },
+                        markPoint: {
+                            data: [
+                                {type: 'max', name: '最大值'},
+                                {type: 'min', name: '最小值'}
+                            ]
+                        },
+                        markLine: {
+                            data: [
+                                {type: 'average', name: '平均值'}
+                            ]
+                        }
+                    }
+                ]
+            };
+            
+            trendChart.setOption(option);
+        }
+        
+        // 预测表单提交
+        document.getElementById('prediction-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 显示加载动画
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result-panel').style.display = 'none';
+            
+            // 收集表单数据
+            const formData = {};
+            {% for feature in feature_names %}
+            formData['{{ feature }}'] = parseFloat(document.getElementById('{{ feature }}').value) || 0;
+            {% endfor %}
+            
+            // 发送预测请求
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 隐藏加载动画
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    // 显示结果
+                    document.getElementById('result-panel').style.display = 'block';
+                    document.getElementById('prediction-value').textContent = data.prediction;
+                    
+                    // 保存SHAP值用于后续查看
+                    window.currentShapValues = data.shap_values;
+                    
+                    // 隐藏SHAP详情（用户需点击按钮查看）
+                    document.getElementById('shap-details').style.display = 'none';
+                    document.getElementById('shap-hint').style.display = 'block';
+                } else {
+                    alert('预测失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                alert('请求失败: ' + error.message);
+            });
+        });
+        
+        // 切换SHAP详情显示
+        function toggleShapDetails() {
+            const detailsDiv = document.getElementById('shap-details');
+            const hintDiv = document.getElementById('shap-hint');
+            const button = event.target;
+            
+            if (detailsDiv.style.display === 'none') {
+                // 显示SHAP详情
+                detailsDiv.style.display = 'block';
+                hintDiv.style.display = 'none';
+                button.textContent = '收起贡献值';
+                
+                // 生成SHAP详情内容
+                if (window.currentShapValues) {
+                    detailsDiv.innerHTML = '';
+                    const shapValues = window.currentShapValues;
+                    
+                    // 特征名称映射
+                    const featureNameMap = {
+                        'BN': '桥梁数量',
+                        'GDP': '地区生产总值',
+                        'FV': '私人汽车拥有量',
+                        'PCO': '公路货运量',
+                        'UL': '城镇化水平',
+                        'IAV': '工业增加值',
+                        'GDPPC': '人均地区生产总值'
+                    };
+                    
+                    const sortedFeatures = Object.entries(shapValues)
+                        .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+                    
+                    // 计算总贡献值用于计算百分比
+                    const totalContribution = sortedFeatures.reduce((sum, [, val]) => sum + Math.abs(val), 0);
+                    
+                    sortedFeatures.forEach(([feature, value]) => {
+                        const featureDiv = document.createElement('div');
+                        featureDiv.className = 'mb-3';
+                        
+                        // 计算贡献百分比
+                        const contributionPercent = totalContribution > 0 ? (Math.abs(value) / totalContribution * 100).toFixed(1) : 0;
+                        
+                        // 所有因素都是增加碳排放的，显示正向影响
+                        const isPositive = true;
+                        const impactDirection = '正向影响(↑)';
+                        
+                        // 获取中文名称
+                        const featureName = featureNameMap[feature] || feature;
+                        
+                        featureDiv.innerHTML = `
+                            <div class="d-flex justify-content-between mb-1">
+                                <span><strong>${featureName}</strong><span class="text-muted small ms-2">(${feature})</span></span>
+                                <span class="badge bg-danger">${contributionPercent}%</span>
+                            </div>
+                            <div class="text-muted small mb-1">${impactDirection}</div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: ${contributionPercent}%"></div>
+                            </div>
+                        `;
+                        detailsDiv.appendChild(featureDiv);
+                    });
+                }
+            } else {
+                // 隐藏SHAP详情
+                detailsDiv.style.display = 'none';
+                hintDiv.style.display = 'block';
+                button.textContent = '查看此次贡献值';
+            }
+        }
+        
+        // 深度分析功能
+        document.getElementById('run-analysis').addEventListener('click', function() {
+            // 显示加载动画
+            document.getElementById('analysis-loading').style.display = 'block';
+            document.getElementById('analysis-results').style.display = 'none';
+            document.getElementById('analysis-status').textContent = '正在分析...';
+            
+            // 发送深度分析请求
+            fetch('/deep_analysis')
+                .then(response => response.json())
+                .then(data => {
+                    // 隐藏加载动画
+                    document.getElementById('analysis-loading').style.display = 'none';
+                    
+                    if (data.success) {
+                        document.getElementById('analysis-status').textContent = '分析完成';
+                        document.getElementById('analysis-results').style.display = 'block';
+                        
+                        // 显示分析报告
+                        document.getElementById('analysis-report').textContent = data.report;
+                        
+                        // 生成特征重要性图表
+                        const chartDom = document.getElementById('feature-importance-chart');
+                        const myChart = echarts.init(chartDom);
+                        
+                        const featureImportance = data.feature_importance;
+                        const features = featureImportance.map(item => item.feature);
+                        const importance = featureImportance.map(item => item.importance);
+                        
+                        const option = {
+                            tooltip: {
+                                trigger: 'axis',
+                                axisPointer: {
+                                    type: 'shadow'
+                                }
+                            },
+                            grid: {
+                                left: '3%',
+                                right: '4%',
+                                bottom: '3%',
+                                containLabel: true
+                            },
+                            xAxis: {
+                                type: 'value',
+                                name: 'SHAP重要性',
+                                nameLocation: 'middle',
+                                nameGap: 30
+                            },
+                            yAxis: {
+                                type: 'category',
+                                data: features,
+                                axisLabel: {
+                                    interval: 0,
+                                    rotate: 30
+                                }
+                            },
+                            series: [
+                                {
+                                    name: 'SHAP重要性',
+                                    type: 'bar',
+                                    data: importance,
+                                    itemStyle: {
+                                        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                            {offset: 0, color: '#83bff6'},
+                                            {offset: 0.5, color: '#188df0'},
+                                            {offset: 1, color: '#188df0'}
+                                        ])
+                                    },
+                                    label: {
+                                        show: true,
+                                        position: 'right',
+                                        formatter: function(params) {
+                                            return params.value.toFixed(4);
+                                        }
+                                    }
+                                }
+                            ]
+                        };
+                        
+                        myChart.setOption(option);
+                        
+                        // 窗口大小变化时重绘
+                        window.addEventListener('resize', function() {
+                            myChart.resize();
+                        });
+                    } else {
+                        document.getElementById('analysis-status').textContent = '分析失败';
+                        alert('深度分析失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('analysis-loading').style.display = 'none';
+                    document.getElementById('analysis-status').textContent = '分析失败';
+                    alert('请求失败: ' + error.message);
+                });
+        });
+        
+        // 导航点击事件
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = this.getAttribute('href').substring(1);
+                navigateTo(target);
+            });
+        });
+        
+        // 重置表单
+        function resetForm() {
+            document.getElementById('prediction-form').reset();
+            document.getElementById('result-panel').style.display = 'none';
+        }
+        
+        // 显示历史记录
+        function showHistory() {
+            fetch('/prediction_history')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.history.length > 0) {
+                        const historyList = document.getElementById('history-list');
+                        historyList.innerHTML = '';
+                        
+                        data.history.forEach((record, index) => {
+                            const item = document.createElement('div');
+                            item.className = 'list-group-item list-group-item-action flex-column align-items-start';
+                            item.innerHTML = `
+                                <div class="d-flex w-100 justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-1">预测记录 #${data.history.length - index}</h6>
+                                    <small class="text-muted">${record.timestamp}</small>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>预测结果：</strong> ${record.prediction} 万吨
+                                </div>
+                                <div class="mb-2">
+                                    <strong>输入特征：</strong>
+                                    <ul class="mb-1 mt-1" style="font-size: 0.85rem;">
+                                        ${Object.entries(record.features).map(([key, val]) => `<li>${key}: ${val}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            `;
+                            item.onclick = function() {
+                                loadHistoryRecord(record);
+                                bootstrap.Modal.getInstance(document.getElementById('historyModal')).hide();
+                            };
+                            historyList.appendChild(item);
+                        });
+                    } else {
+                        document.getElementById('history-list').innerHTML = '<p class="text-center text-muted">暂无历史记录</p>';
+                    }
+                    
+                    // 显示弹窗
+                    const modal = new bootstrap.Modal(document.getElementById('historyModal'));
+                    modal.show();
+                })
+                .catch(error => {
+                    alert('获取历史记录失败: ' + error.message);
+                });
+        }
+        
+        // 加载历史记录到表单
+        function loadHistoryRecord(record) {
+            for (const [feature, value] of Object.entries(record.features)) {
+                const input = document.getElementById(feature);
+                if (input) {
+                    input.value = value;
+                }
+            }
+        }
+        
+        // 清空历史记录
+        function clearHistory() {
+            if (confirm('确定要清空所有历史记录吗？')) {
+                fetch('/clear_history', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('history-list').innerHTML = '<p class="text-center text-muted">暂无历史记录</p>';
+                            alert('历史记录已清空');
+                        }
+                    })
+                    .catch(error => {
+                        alert('清空失败: ' + error.message);
+                    });
+            }
+        }
+        
+        // 页面加载完成后初始化
+        window.onload = function() {
+            initProvinceSelector();
+            initMapChart();
+            initTrendChart();
+        };
+    </script>
+</body>
+</html>

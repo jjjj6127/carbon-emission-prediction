@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ province }}碳排放趋势分析</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+        }
+        /* 导航栏 */
+        .navbar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+        }
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        .nav-link {
+            color: #666;
+            font-weight: 500;
+            margin-left: 1.5rem;
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #007bff;
+        }
+        .nav-link.active {
+            color: #007bff;
+            font-weight: 600;
+        }
+        /* 头部区域 */
+        .hero-section {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        .hero-subtitle {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        /* 卡片样式 */
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 1.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        .card-body {
+            padding: 2rem;
+        }
+        /* 图表容器 */
+        .chart-container {
+            height: 550px;
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+        /* 统计卡片 */
+        .stat-card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #007bff;
+            margin-bottom: 0.5rem;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="/">碳排放数据系统</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">数据看板</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#prediction">智能预测</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#analysis">深度分析</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#about">关于系统</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 头部区域 -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <h1 class="hero-title">{{ province }}碳排放趋势分析</h1>
+                    <p class="hero-subtitle">2000-2023年{{ province }}碳排放历史数据与趋势分析</p>
+                    <a href="/" class="btn btn-primary">返回数据看板</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 统计数据 -->
+    <section class="container mb-5">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-value">{{ max_emission.toFixed(2) }}</div>
+                    <div class="stat-label">最高碳排放量 (万吨)</div>
+                    <div class="text-sm text-muted">{{ max_year }}年</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-value">{{ min_emission.toFixed(2) }}</div>
+                    <div class="stat-label">最低碳排放量 (万吨)</div>
+                    <div class="text-sm text-muted">{{ min_year }}年</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="stat-value">{{ avg_emission.toFixed(2) }}</div>
+                    <div class="stat-label">平均碳排放量 (万吨)</div>
+                    <div class="text-sm text-muted">2000-2023年</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 趋势图表 -->
+    <section class="container mb-5">
+        <div class="card">
+            <div class="card-header">
+                <h3>{{ province }}碳排放趋势 (2000-2023)</h3>
+            </div>
+            <div class="card-body">
+                <div id="trend-chart" class="chart-container"></div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // 省份数据
+        const provinceData = {{ province_data|tojson }};
+        const provinceName = "{{ province }}";
+        
+        // 初始化趋势图
+        function initTrendChart() {
+            const chartDom = document.getElementById('trend-chart');
+            const myChart = echarts.init(chartDom);
+            
+            // 生成趋势数据
+            function getTrendData() {
+                // 获取所有可用年份并排序
+                const years = Object.keys(provinceData).sort((a, b) => parseInt(a) - parseInt(b));
+                const data = years.map(year => provinceData[year] || 0);
+                
+                return {
+                    years: years,
+                    data: data
+                };
+            }
+            
+            const trendData = getTrendData();
+            
+            // 趋势图配置
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        return params[0].name + '年: ' + params[0].value.toFixed(2) + ' 万吨';
+                    }
+                },
+                toolbox: {
+                    feature: {
+                        dataZoom: {
+                            yAxisIndex: 'none'
+                        },
+                        saveAsImage: {}
+                    }
+                },
+                dataZoom: [
+                    {
+                        type: 'inside',
+                        start: 0,
+                        end: 100
+                    },
+                    {
+                        start: 0,
+                        end: 100,
+                        handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+                        handleSize: '80%',
+                        handleStyle: {
+                            color: '#007bff',
+                            shadowBlur: 3,
+                            shadowColor: 'rgba(0, 0, 0, 0.6)',
+                            shadowOffsetX: 2,
+                            shadowOffsetY: 2
+                        }
+                    }
+                ],
+                xAxis: {
+                    type: 'category',
+                    data: trendData.years,
+                    boundaryGap: false
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '碳排放量 (万吨)'
+                },
+                series: [
+                    {
+                        data: trendData.data,
+                        type: 'line',
+                        smooth: true,
+                        lineStyle: {
+                            color: '#007bff',
+                            width: 3
+                        },
+                        itemStyle: {
+                            color: '#007bff'
+                        },
+                        areaStyle: {
+                            color: {
+                                type: 'linear',
+                                x: 0,
+                                y: 0,
+                                x2: 0,
+                                y2: 1,
+                                colorStops: [{
+                                    offset: 0, color: 'rgba(0, 123, 255, 0.3)'
+                                }, {
+                                    offset: 1, color: 'rgba(0, 123, 255, 0.1)'
+                                }]
+                            }
+                        },
+                        markPoint: {
+                            data: [
+                                {type: 'max', name: '最大值'},
+                                {type: 'min', name: '最小值'}
+                            ]
+                        },
+                        markLine: {
+                            data: [
+                                {type: 'average', name: '平均值'}
+                            ]
+                        }
+                    }
+                ]
+            };
+            
+            myChart.setOption(option);
+            
+            // 窗口大小变化时重绘
+            window.addEventListener('resize', function() {
+                myChart.resize();
+            });
+        }
+        
+        // 页面加载完成后初始化
+        window.onload = function() {
+            initTrendChart();
+        };
+    </script>
+</body>
+</html>
